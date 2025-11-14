@@ -1,0 +1,80 @@
+### 3. Demo File (`demo.py`)
+
+This is a standalone Python script that loads your saved `AIGeneratedModel.h5` and runs the `find_out` function to classify an image given as a command-line argument.
+
+```python
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+import cv2 as cv
+import numpy as np
+import sys
+import os
+
+# --- Configuration ---
+MODEL_PATH = "AIGeneratedModel.h5"
+IMG_SIZE = 48
+# ---------------------
+
+def find_out(path_img, model_to_use):
+    """
+    Loads, preprocesses, and classifies a single image as 'Real' or 'AI Generated'.
+    """
+    img_arr = cv.imread(path_img)
+    
+    if img_arr is None:
+        print(f"Error: Could not read image at {path_img}")
+        return
+
+    # Preprocess the image
+    new_arr = cv.resize(img_arr, (IMG_SIZE, IMG_SIZE))
+    new_arr = new_arr / 255.0
+    test = np.array(new_arr).reshape(-1, IMG_SIZE, IMG_SIZE, 3)
+    
+    # Make prediction
+    prediction = model_to_use.predict(test)
+    
+    # Interpret the result
+    if prediction[0][0] <= 0.5:
+        print(f"Prediction: The given image is Real. (Confidence: {((1-prediction[0][0])*100):.2f}%)")
+    else:
+        print(f"Prediction: The given image is AI Generated. (Confidence: {(prediction[0][0]*100):.2f}%)")
+
+def main():
+    """
+    Main function to run the demo.
+    """
+    # Check for image path argument
+    if len(sys.argv) < 2:
+        print("Usage: python demo.py <path_to_your_image>")
+        print("\nExample:")
+        print("python demo.py ./Testing/Real.jpeg")
+        sys.exit(1)
+        
+    image_path = sys.argv[1]
+
+    # Check if the image file exists
+    if not os.path.exists(image_path):
+        print(f"Error: Image file not found at {image_path}")
+        sys.exit(1)
+
+    # Check if the model file exists
+    if not os.path.exists(MODEL_PATH):
+        print(f"Error: Model file not found at {MODEL_PATH}")
+        print("Please ensure 'AIGeneratedModel.h5' is in the same directory.")
+        sys.exit(1)
+
+    # Load the model
+    print(f"Loading model from {MODEL_PATH}...")
+    try:
+        model = load_model(MODEL_PATH)
+        print("Model loaded successfully.")
+        
+        # Run classification
+        find_out(image_path, model)
+        
+    except Exception as e:
+        print(f"An error occurred while loading the model or predicting: {e}")
+        print("Please ensure TensorFlow and all dependencies are installed correctly.")
+
+if __name__ == "__main__":
+    main()
